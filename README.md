@@ -74,6 +74,8 @@ Không viết solution từng lab. Mỗi card là một **dạng hay gặp**: d�
 
 Các pattern được rút ra từ 23 web + 9 pwn của BKSEC Training, nhưng nội dung đã generic hóa để dùng lại. Phần bổ sung tập trung vào biến thể bypass và các dạng hay gặp khi TTV khó hơn training.
 
+Payload Pwn có comment inline cho offset/address/gadget. Các payload dạng input thô (`2147483647 1`, JSON số âm, `%p...`) không chèn `#` để tránh làm hỏng input khi copy; giải thích nằm ở steps/gotchas.
+
 ## Ghi chú
 
 - `localStorage` key hiện tại: `ctf-playbook:labs:v4`; tab đang mở ở `open-labs:v4`, lab active ở `active-lab:v4`, scale ở `ui-scale:v1`.
