@@ -558,6 +558,13 @@ export default function Playbook() {
     );
   }
 
+  function renameLab(id, title) {
+    const value = String(title || "").trim();
+    if (!value) return;
+    updateLab(id, { title: value });
+    showToast("Đã đổi tên lab");
+  }
+
   function createBlankLab() {
     const lab = newLab(`Lab ${labs.length + 1}`);
     setLabs((prev) => [lab, ...prev]);
@@ -739,6 +746,7 @@ export default function Playbook() {
           onNew={createBlankLab}
           onBoard={showBoard}
           onJumpBlock={jumpToBlock}
+          onRenameLab={renameLab}
           onClose={() => setSidebarOpen(false)}
         />
         <button
@@ -992,8 +1000,29 @@ function Sidebar({
   onNew,
   onBoard,
   onJumpBlock,
+  onRenameLab,
   onClose
 }) {
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  function startRename(lab) {
+    setRenamingId(lab.id);
+    setRenameValue(lab.title);
+  }
+
+  function commitRename() {
+    const value = renameValue.trim();
+    if (renamingId && value) onRenameLab(renamingId, value);
+    setRenamingId(null);
+    setRenameValue("");
+  }
+
+  function cancelRename() {
+    setRenamingId(null);
+    setRenameValue("");
+  }
+
   return (
     <aside
       className="sidebar"
@@ -1018,27 +1047,66 @@ function Sidebar({
       <div className="side-scroll">
         <div className="side-cells">
           {labs.map((lab) => {
-          const status = statusMeta(lab.status);
-          return (
-            <button
-              key={lab.id}
-              type="button"
-              className={`lab-cell${activeId === lab.id ? " active" : ""}`}
-              onClick={() => onOpen(lab.id)}
-              title={`${lab.title}${lab.target ? ` · ${lab.target}` : ""}`}
-              aria-current={activeId === lab.id ? "page" : undefined}
-            >
-              <span className="lab-cell-top">
-                <span className={`status-dot ${status.cls}`} />
-                <span className="lab-cell-title">{lab.title}</span>
-              </span>
-              <span className="lab-cell-meta">
-                {lab.category} · {lab.blocks.length}{" "}
-                {lab.blocks.length === 1 ? "block" : "blocks"} · {status.label}
-              </span>
-            </button>
-          );
-        })}
+            const status = statusMeta(lab.status);
+            return (
+              <div
+                key={lab.id}
+                className={`lab-cell${activeId === lab.id ? " active" : ""}`}
+              >
+                {renamingId === lab.id ? (
+                  <input
+                    className="lab-cell-rename"
+                    value={renameValue}
+                    onChange={(event) => setRenameValue(event.target.value)}
+                    onBlur={commitRename}
+                    onFocus={(event) => event.target.select()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitRename();
+                      } else if (event.key === "Escape") {
+                        event.preventDefault();
+                        cancelRename();
+                      }
+                    }}
+                    aria-label="Đổi tên lab"
+                    spellCheck={false}
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="lab-cell-main"
+                    onClick={() => onOpen(lab.id)}
+                    onDoubleClick={() => startRename(lab)}
+                    title={`${lab.title}${lab.target ? ` · ${lab.target}` : ""}`}
+                    aria-current={activeId === lab.id ? "page" : undefined}
+                  >
+                    <span className="lab-cell-top">
+                      <span className={`status-dot ${status.cls}`} />
+                      <span className="lab-cell-title">{lab.title}</span>
+                    </span>
+                    <span className="lab-cell-meta">
+                      {lab.category} · {lab.blocks.length}{" "}
+                      {lab.blocks.length === 1 ? "block" : "blocks"} ·{" "}
+                      {status.label}
+                    </span>
+                  </button>
+                )}
+                {renamingId !== lab.id ? (
+                  <button
+                    type="button"
+                    className="lab-cell-edit"
+                    onClick={() => startRename(lab)}
+                    title="Đổi tên lab"
+                    aria-label="Đổi tên lab"
+                  >
+                    ✎
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
         {!labs.length ? (
           <div className="side-empty">
             {query ? "Không thấy lab." : "Chưa có lab."}
@@ -1252,10 +1320,10 @@ function Board({ labs, onOpen, onNew }) {
             click; hoặc bấm <code>＋ Add checklist block</code> và nhập template.
           </li>
           <li>
-            Sidebar luôn hiện toàn bộ lab dạng cell lớn; lab đang mở có thêm mục{" "}
+            Sidebar luôn hiện toàn bộ lab dạng cell lớn; bấm bút chì ✎ hoặc
+            double-click tên lab để đổi tên. Lab đang mở có thêm mục{" "}
             <code>Blocks</code> để bấm thẳng tới từng block. Header và footer{" "}
-            <code>New lab</code> / <code>Lab board</code> luôn cố định, chỉ vùng
-            danh sách scroll.
+            <code>New lab</code> / <code>Lab board</code> luôn cố định.
           </li>
           <li>
             Rail phải sticky và có scroll riêng khi màn thấp; scale ≥120% tự đưa

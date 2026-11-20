@@ -18,7 +18,7 @@ npm run preview      # http://localhost:4173
 
 ## Mô hình dùng
 
-1. `＋ New lab` tạo tab lab. Sidebar luôn hiện toàn bộ lab dạng **cell lớn**; lab đang mở có thêm mục **Blocks** để bấm thẳng tới từng block. Header và footer `New lab` / `Lab board` cố định, chỉ danh sách bên trong scroll; rail phải cũng có scroll riêng khi màn thấp.
+1. `＋ New lab` tạo tab lab. Sidebar luôn hiện toàn bộ lab dạng **cell lớn**; bấm bút chì ✎ hoặc double-click tên lab để đổi tên. Lab đang mở có thêm mục **Blocks** để bấm thẳng tới từng block. Header và footer `New lab` / `Lab board` cố định, chỉ danh sách bên trong scroll; rail phải cũng có scroll riêng khi màn thấp.
 2. Trong lab, thêm pattern bằng một trong hai cách:
    - bấm chip ở hàng **Quick add** (CSP, XSS+WAF, JWT, SQLi, ROP...);
    - hoặc `＋ Add checklist block` rồi nhập template.
