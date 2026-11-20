@@ -325,7 +325,6 @@ export default function Playbook() {
         group: template.group || template.category,
         category: template.category,
         priority: template.priority,
-        summary: template.summary,
         hay: haystack
       });
       (template.payloads || []).forEach((payload, index) => {
@@ -362,7 +361,6 @@ export default function Playbook() {
         title: lab.title,
         group: `Lab · ${lab.category}`,
         category: lab.category,
-        summary: lab.target || statusMeta(lab.status).label,
         hay: normalize(
           [lab.title, lab.category, lab.target, statusMeta(lab.status).label].join(" ")
         )
@@ -434,6 +432,15 @@ export default function Playbook() {
 
   function collapseSidebar() {
     if (window.matchMedia("(max-width: 1279px)").matches) setSidebarOpen(false);
+  }
+
+  function jumpToBlock(blockId) {
+    collapseSidebar();
+    setTimeout(() => {
+      document
+        .querySelector(`[data-block-id="${blockId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
   }
 
   function stepScale(direction) {
@@ -704,6 +711,7 @@ export default function Playbook() {
       className={`app${sidebarOpen ? " sidebar-open" : " sidebar-closed"}${
         uiScale >= 120 ? " scale-up" : ""
       }${uiScale >= 140 ? " scale-xl" : ""}`}
+      style={{ "--ui-inv": 100 / uiScale }}
     >
       <TopBar
         query={query}
@@ -725,10 +733,12 @@ export default function Playbook() {
           total={labs.length}
           query={query}
           activeId={activeId}
+          activeLab={activeLab}
           sidebarOpen={sidebarOpen}
           onOpen={openLab}
           onNew={createBlankLab}
           onBoard={showBoard}
+          onJumpBlock={jumpToBlock}
           onClose={() => setSidebarOpen(false)}
         />
         <button
@@ -836,10 +846,7 @@ export default function Playbook() {
                   </span>
                   <span className="palette-main">
                     <span className="palette-title">{item.title}</span>
-                    <span className="palette-sub">
-                      {item.group}
-                      {item.summary ? ` · ${item.summary}` : ""}
-                    </span>
+                    <span className="palette-sub">{item.group}</span>
                     {item.code ? (
                       <code className="palette-code">
                         {item.code.split("\n")[0].slice(0, 110)}
@@ -979,10 +986,12 @@ function Sidebar({
   total,
   query,
   activeId,
+  activeLab,
   sidebarOpen,
   onOpen,
   onNew,
   onBoard,
+  onJumpBlock,
   onClose
 }) {
   return (
@@ -1006,8 +1015,9 @@ function Sidebar({
           ×
         </button>
       </div>
-      <div className="side-cells">
-        {labs.map((lab) => {
+      <div className="side-scroll">
+        <div className="side-cells">
+          {labs.map((lab) => {
           const status = statusMeta(lab.status);
           return (
             <button
@@ -1015,7 +1025,7 @@ function Sidebar({
               type="button"
               className={`lab-cell${activeId === lab.id ? " active" : ""}`}
               onClick={() => onOpen(lab.id)}
-              title={lab.title}
+              title={`${lab.title}${lab.target ? ` · ${lab.target}` : ""}`}
               aria-current={activeId === lab.id ? "page" : undefined}
             >
               <span className="lab-cell-top">
@@ -1023,9 +1033,8 @@ function Sidebar({
                 <span className="lab-cell-title">{lab.title}</span>
               </span>
               <span className="lab-cell-meta">
-                {lab.category}
-                {lab.target ? ` · ${lab.target}` : ""}
-                {` · ${status.label}`}
+                {lab.category} · {lab.blocks.length}{" "}
+                {lab.blocks.length === 1 ? "block" : "blocks"} · {status.label}
               </span>
             </button>
           );
@@ -1035,6 +1044,51 @@ function Sidebar({
             {query ? "Không thấy lab." : "Chưa có lab."}
           </div>
         ) : null}
+      </div>
+      {activeLab ? (
+        <div className="side-blocks">
+          <div className="side-subhead">
+            <span>Blocks</span>
+            <span className="side-count">{activeLab.blocks.length}</span>
+          </div>
+          <div className="side-block-list">
+            {activeLab.blocks.map((block) => {
+              const steps = block.steps || [];
+              const done = steps.filter((step) => step.done).length;
+              return (
+                <button
+                  key={block.id}
+                  type="button"
+                  className="side-block-cell"
+                  onClick={() => onJumpBlock(block.id)}
+                  title={`${block.title || "Block"}${
+                    block.group ? ` · ${block.group}` : ""
+                  }`}
+                >
+                  <span className="side-block-top">
+                    <span className="side-block-title">
+                      {block.type === "note" ? "Notes" : block.title}
+                    </span>
+                    {block.type === "checklist" && steps.length ? (
+                      <span className="side-block-progress">
+                        {done}/{steps.length}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="side-block-meta">
+                    {block.type === "note"
+                      ? "Note"
+                      : block.group || "Checklist"}
+                  </span>
+                </button>
+              );
+            })}
+            {!activeLab.blocks.length ? (
+              <div className="side-blocks-empty">Chưa có block.</div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       </div>
       <div className="sidebar-footer">
         <button type="button" className="btn btn-primary" onClick={onNew}>
@@ -1198,8 +1252,14 @@ function Board({ labs, onOpen, onNew }) {
             click; hoặc bấm <code>＋ Add checklist block</code> và nhập template.
           </li>
           <li>
-            Sidebar luôn hiện toàn bộ lab dạng cell lớn, dễ bấm; header{" "}
-            <code>Labs</code> đếm số lab và dính khi scroll.
+            Sidebar luôn hiện toàn bộ lab dạng cell lớn; lab đang mở có thêm mục{" "}
+            <code>Blocks</code> để bấm thẳng tới từng block. Header và footer{" "}
+            <code>New lab</code> / <code>Lab board</code> luôn cố định, chỉ vùng
+            danh sách scroll.
+          </li>
+          <li>
+            Rail phải sticky và có scroll riêng khi màn thấp; scale ≥120% tự đưa
+            rail xuống dưới.
           </li>
           <li>
             <code>Ctrl+B</code> ẩn/hiện sidebar; layout tự co khi chia đôi màn
@@ -1442,10 +1502,21 @@ function Block({
   const [search, setSearch] = useState("");
   const [changing, setChanging] = useState(!block.templateId);
   const [newStepText, setNewStepText] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const searchInput = useRef(null);
   const isChecklist = block.type === "checklist";
+  const isBlank = !block.templateId;
   const steps = block.steps || [];
   const done = steps.filter((step) => step.done).length;
+  const hasSearch = search.trim().length > 0;
+  const searchExpanded =
+    !isBlank || searchFocused || hasSearch || steps.length > 0;
+
+  function handleSearchBlur(event) {
+    const next = event.relatedTarget;
+    const container = event.currentTarget.closest(".block");
+    if (!next || !container?.contains(next)) setSearchFocused(false);
+  }
   const results = useMemo(
     () => searchTemplates(search, labCategory),
     [search, labCategory]
@@ -1526,6 +1597,8 @@ function Block({
                   ref={searchInput}
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={handleSearchBlur}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && results[0]) {
                       event.preventDefault();
@@ -1540,32 +1613,54 @@ function Block({
                   spellCheck={false}
                   autoFocus={focusBlockId === block.id}
                 />
-                <div className="template-hint">
-                  Enter chọn kết quả đầu tiên · gõ để lọc · Esc đóng
-                </div>
-                <div className="template-results">
-                  {results.map((template) => (
-                    <button
-                      key={template.id}
-                      type="button"
-                      className="template-result"
-                      onClick={() => pickTemplate(template)}
-                    >
-                      <span className="template-result-title">{template.title}</span>
-                      <span className="template-result-meta">
-                        {template.group} · {template.steps?.length || 0} bước
-                        {template.payloads?.length
-                          ? ` · ${template.payloads.length} payload`
-                          : ""}
-                      </span>
-                    </button>
-                  ))}
-                  {!results.length ? (
-                    <div className="template-empty">
-                      Không thấy template. Thử “csp”, “upload”, “ret2libc”.
+                {searchExpanded ? (
+                  <>
+                    <div className="template-hint">
+                      Enter chọn gợi ý đầu tiên · gõ để tìm đầy đủ · Esc đóng
                     </div>
-                  ) : null}
-                </div>
+                    {hasSearch ? (
+                      <div className="template-results">
+                        {results.map((template) => (
+                          <button
+                            key={template.id}
+                            type="button"
+                            className="template-result"
+                            onClick={() => pickTemplate(template)}
+                          >
+                            <span className="template-result-title">
+                              {template.title}
+                            </span>
+                            <span className="template-result-meta">
+                              {template.group} · {template.steps?.length || 0} bước
+                              {template.payloads?.length
+                                ? ` · ${template.payloads.length} payload`
+                                : ""}
+                            </span>
+                          </button>
+                        ))}
+                        {!results.length ? (
+                          <div className="template-empty">
+                            Không thấy template. Thử “csp”, “upload”, “ret2libc”.
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="template-suggest">
+                        {results.slice(0, 3).map((template) => (
+                          <button
+                            key={template.id}
+                            type="button"
+                            className="template-chip"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => pickTemplate(template)}
+                          >
+                            {template.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : null}
                 {block.templateId ? (
                   <button
                     type="button"
@@ -1611,25 +1706,27 @@ function Block({
               </div>
             ) : null}
 
-            <form
-              className="add-step"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const value = newStepText.trim();
-                if (!value) return;
-                onAddStep(labId, block.id, value);
-                setNewStepText("");
-              }}
-            >
-              <input
-                value={newStepText}
-                onChange={(event) => setNewStepText(event.target.value)}
-                placeholder="Thêm bước..."
-              />
-              <button type="submit" className="btn">
-                Add step
-              </button>
-            </form>
+            {searchExpanded ? (
+              <form
+                className="add-step"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const value = newStepText.trim();
+                  if (!value) return;
+                  onAddStep(labId, block.id, value);
+                  setNewStepText("");
+                }}
+              >
+                <input
+                  value={newStepText}
+                  onChange={(event) => setNewStepText(event.target.value)}
+                  placeholder="Thêm bước..."
+                />
+                <button type="submit" className="btn">
+                  Add step
+                </button>
+              </form>
+            ) : null}
 
             {block.templateId && !changing ? (
               <button
